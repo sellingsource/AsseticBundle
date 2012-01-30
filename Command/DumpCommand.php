@@ -60,9 +60,7 @@ class DumpCommand extends ContainerAwareCommand
         $output->writeln(sprintf('Debug mode is <comment>%s</comment>.', $input->getOption('no-debug') ? 'off' : 'on'));
         $output->writeln('');
 
-        if ($input->getOption('fail_on_dupe')) {
-            $this->failOnDupe = true;
-        }
+        $this->failOnDupe = $input->getOption('fail_on_dupe');
 
         if (!$input->getOption('watch')) {
             foreach ($this->am->getNames() as $name) {
