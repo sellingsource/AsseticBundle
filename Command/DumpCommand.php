@@ -29,6 +29,8 @@ class DumpCommand extends ContainerAwareCommand
     private $basePath;
     private $verbose;
     private $am;
+    private $failOnDupe = false;
+    private $targetsWritten = array();
 
     protected function configure()
     {
@@ -39,6 +41,7 @@ class DumpCommand extends ContainerAwareCommand
             ->addOption('watch', null, InputOption::VALUE_NONE, 'Check for changes every second, debug mode only')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Force an initial generation of all assets (used with --watch)')
             ->addOption('period', null, InputOption::VALUE_REQUIRED, 'Set the polling period in seconds (used with --watch)', 1)
+            ->addOption('fail_on_dupe', null, InputOption::VALUE_NONE, 'Fails the command if the same file is written to more than once')
         ;
     }
 
@@ -56,6 +59,10 @@ class DumpCommand extends ContainerAwareCommand
         $output->writeln(sprintf('Dumping all <comment>%s</comment> assets.', $input->getOption('env')));
         $output->writeln(sprintf('Debug mode is <comment>%s</comment>.', $input->getOption('no-debug') ? 'off' : 'on'));
         $output->writeln('');
+
+        if ($input->getOption('fail_on_dupe')) {
+            $this->failOnDupe = true;
+        }
 
         if (!$input->getOption('watch')) {
             foreach ($this->am->getNames() as $name) {
@@ -203,8 +210,16 @@ class DumpCommand extends ContainerAwareCommand
             }
         }
 
+        if ($this->failOnDupe && in_array($target, $this->targetsWritten)) {
+            throw new \RuntimeException('Duplicate file found: '.$target);
+        }
+
         if (false === @file_put_contents($target, $asset->dump())) {
             throw new \RuntimeException('Unable to write file '.$target);
+        }
+
+        if ($this->failOnDupe) {
+            $this->targetsWritten[] = $target;
         }
     }
 }

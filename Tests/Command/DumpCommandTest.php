@@ -18,6 +18,7 @@ use Symfony\Component\Console\Output\NullOutput;
 
 class DumpCommandTest extends \PHPUnit_Framework_TestCase
 {
+    private $command;
     private $writeTo;
     private $application;
     private $definition;
@@ -170,5 +171,38 @@ class DumpCommandTest extends \PHPUnit_Framework_TestCase
         $this->assertFileExists($this->writeTo.'/test_leaf.css');
         $this->assertEquals('/* test_asset */', file_get_contents($this->writeTo.'/test_asset.css'));
         $this->assertEquals('/* test_leaf */', file_get_contents($this->writeTo.'/test_leaf.css'));
+    }
+
+    public function testDuplicateFileFails()
+    {
+        $asset = $this->getMock('Assetic\\Asset\\AssetInterface');
+
+        $this->am->expects($this->once())
+            ->method('getNames')
+            ->will($this->returnValue(array('test_asset', 'test_asset')));
+        $this->am->expects($this->any())
+            ->method('get')
+            ->with('test_asset')
+            ->will($this->returnValue($asset));
+        $this->am->expects($this->any())
+            ->method('getFormula')
+            ->with('test_asset')
+            ->will($this->returnValue(array()));
+        $this->am->expects($this->any())
+            ->method('isDebug')
+            ->will($this->returnValue(false));
+        $asset->expects($this->any())
+            ->method('getTargetPath')
+            ->will($this->returnValue('test_asset.css'));
+        $asset->expects($this->any())
+            ->method('dump')
+            ->will($this->returnValue('/* test_asset */'));
+
+        try {
+            $this->command->run(new ArrayInput(array('--fail_on_dupe' => true)), new NullOutput());
+            $this->fail('Exception for duplicate files not thrown');
+        } catch (\RuntimeException $e) {
+            $this->assertContains('Duplicate', $e->getMessage());
+        }
     }
 }
