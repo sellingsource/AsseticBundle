@@ -41,7 +41,7 @@ class DumpCommand extends ContainerAwareCommand
             ->addOption('watch', null, InputOption::VALUE_NONE, 'Check for changes every second, debug mode only')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Force an initial generation of all assets (used with --watch)')
             ->addOption('period', null, InputOption::VALUE_REQUIRED, 'Set the polling period in seconds (used with --watch)', 1)
-            ->addOption('fail_on_dupe', null, InputOption::VALUE_NONE, 'Fails the command if the same file is written to more than once')
+            ->addOption('fail_on_dupe', null, InputOption::VALUE_NONE, 'Fails the command if the same file is written to more than once, not usable with --watch')
         ;
     }
 
@@ -72,6 +72,10 @@ class DumpCommand extends ContainerAwareCommand
 
         if (!$this->am->isDebug()) {
             throw new \RuntimeException('The --watch option is only available in debug mode.');
+        }
+
+        if ($this->failOnDupe && $this->am->isDebug()) {
+            throw new \RuntimeException('The --fail_on_dupe option cannot be used with --watch.');
         }
 
         $this->watch($input, $output);
